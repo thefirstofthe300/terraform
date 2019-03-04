@@ -25,6 +25,7 @@ type TerraformProviderVersion struct {
 	Protocols []string `json:"protocols"`
 
 	Platforms []*TerraformProviderPlatform `json:"platforms"`
+	Warnings  []string                     `json:"warnings"`
 }
 
 // TerraformProviderVersions is the Terraform-specific response structure for an

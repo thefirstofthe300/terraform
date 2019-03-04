@@ -204,6 +204,9 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 
 	printedProviderName := fmt.Sprintf("%s (%s)", provider, providerSource)
 	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", printedProviderName, versionMeta.Version))
+	for _, warning := range versionMeta.Warnings {
+		i.Ui.Warn(fmt.Sprintf("  Registry Warning: %s", warning))
+	}
 	log.Printf("[DEBUG] getting provider %q version %q", printedProviderName, versionMeta.Version)
 	err = i.install(provider, v, providerURL)
 	if err != nil {
