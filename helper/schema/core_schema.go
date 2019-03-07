@@ -54,14 +54,27 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 				continue
 			}
 		}
-		switch schema.Elem.(type) {
-		case *Schema, ValueType:
+		switch schema.ConfigMode {
+		case SchemaConfigModeAttr:
 			ret.Attributes[name] = schema.coreConfigSchemaAttribute()
-		case *Resource:
+		case SchemaConfigModeBlock:
 			ret.BlockTypes[name] = schema.coreConfigSchemaBlock()
-		default:
-			// Should never happen for a valid schema
-			panic(fmt.Errorf("invalid Schema.Elem %#v; need *Schema or *Resource", schema.Elem))
+		default: // SchemaConfigModeAuto, or any other invalid value
+			if schema.Computed && !schema.Optional {
+				// Computed-only schemas are always handled as attributes,
+				// because they never appear in configuration.
+				ret.Attributes[name] = schema.coreConfigSchemaAttribute()
+				continue
+			}
+			switch schema.Elem.(type) {
+			case *Schema, ValueType:
+				ret.Attributes[name] = schema.coreConfigSchemaAttribute()
+			case *Resource:
+				ret.BlockTypes[name] = schema.coreConfigSchemaBlock()
+			default:
+				// Should never happen for a valid schema
+				panic(fmt.Errorf("invalid Schema.Elem %#v; need *Schema or *Resource", schema.Elem))
+			}
 		}
 	}
 
@@ -131,6 +144,11 @@ func (s *Schema) coreConfigSchemaBlock() *configschema.NestedBlock {
 		// Should never happen for a valid schema
 		panic(fmt.Errorf("invalid s.Type %s for s.Elem being resource", s.Type))
 	}
+	if s.AsSingle {
+		// Provider wants to present this one to Terraform Core as a single
+		// block rather than as a list/set of blocks.
+		ret.Nesting = configschema.NestingSingle
+	}
 
 	ret.MinItems = s.MinItems
 	ret.MaxItems = s.MaxItems
@@ -181,9 +199,10 @@ func (s *Schema) coreConfigSchemaType() cty.Type {
 			// common one so we'll just shim it.
 			elemType = (&Schema{Type: set}).coreConfigSchemaType()
 		case *Resource:
-			// In practice we don't actually use this for normal schema
-			// construction because we construct a NestedBlock in that
-			// case instead. See schemaMap.CoreConfigSchema.
+			// By default we construct a NestedBlock in this case, but this
+			// behavior is selected either for computed-only schemas or
+			// when ConfigMode is explicitly SchemaConfigModeBlock.
+			// See schemaMap.CoreConfigSchema for the exact rules.
 			elemType = set.coreConfigSchema().ImpliedType()
 		default:
 			if set != nil {
@@ -193,6 +212,11 @@ func (s *Schema) coreConfigSchemaType() cty.Type {
 			// Some pre-existing schemas assume string as default, so we need
 			// to be compatible with them.
 			elemType = cty.String
+		}
+		if s.AsSingle {
+			// Provider wants Terraform Core to see this as a single value
+			// rather than as a list/set.
+			return elemType
 		}
 		switch s.Type {
 		case TypeList:
