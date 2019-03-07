@@ -10,9 +10,12 @@ description: |-
 
 **Kind: Enhanced**
 
-The remote backend stores state and runs operations remotely. When running
-`terraform plan` or `terraform apply` with this backend, the actual execution
-occurs in Terraform Enterprise, with log output streaming to the local terminal.
+The remote backend runs operations and stores state remotely in Terraform
+Enterprise. When running `terraform plan` or `terraform apply` with this
+backend, the actual execution and storage of state occurs in Terraform
+Enterprise with log output streaming to the local terminal. Remote state
+storage is [available in all tiers](https://www.hashicorp.com/products/terraform/enterprise)
+of Terraform Enterprise.
 
 To use this backend you need a Terraform Enterprise account on
 [app.terraform.io](https://app.terraform.io) or have a private instance of
