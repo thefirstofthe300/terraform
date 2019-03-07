@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sort"
@@ -17,7 +18,7 @@ import (
 // Input asks for input to fill variables and provider configurations.
 // This modifies the configuration in-place, so asking for Input twice
 // may result in different UI output showing different current values.
-func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
+func (c *Context) Input(ctx context.Context, mode InputMode) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	defer c.acquireRun("input")()
 
@@ -60,7 +61,7 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 			retry := 0
 			for {
 				var err error
-				rawValue, err = c.uiInput.Input(&InputOpts{
+				rawValue, err = c.uiInput.Input(ctx, &InputOpts{
 					Id:          fmt.Sprintf("var.%s", n),
 					Query:       fmt.Sprintf("var.%s", n),
 					Description: v.Description,
@@ -208,7 +209,7 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 				}
 
 				log.Printf("[TRACE] Context.Input: Prompting for %s argument %s", pa, key)
-				rawVal, err := input.Input(&InputOpts{
+				rawVal, err := input.Input(ctx, &InputOpts{
 					Id:          key,
 					Query:       key,
 					Description: attrS.Description,
